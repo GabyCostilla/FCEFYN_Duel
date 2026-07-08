@@ -1,39 +1,35 @@
-# StudyDuel 📚⚔️
+# FCEFYN Duel ⚔️
 
-## Correr localmente
+[![Licencia](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Estado del Proyecto](https://img.shields.io/badge/status-en%20desarrollo-orange.svg)]()
 
-### 1. Crear la base de datos en MySQL
-```sql
-CREATE DATABASE studyapp;
-```
-(Las tablas se crean solas al iniciar la app)
-
-### 2. Instalar dependencias
-```bash
-pip install -r requirements.txt
-```
-
-### 3. Configurar la conexión (opcional)
-Por defecto conecta a `localhost` con usuario `root` y password `root`.
-Si tu MySQL tiene otra config, editá `config.py`:
-```python
-'mysql+pymysql://TU_USUARIO:TU_PASSWORD@localhost/studyapp'
-```
-
-### 4. Correr
-```bash
-python run.py
-```
-
-Abrí `http://localhost:5000` en el browser. ¡Listo!
+**FCEFYN Duel** es una aplicación/juego desarrollada en el contexto de la **Facultad de Ciencias Exactas, Físicas y Naturales (FCEFYN)**. El proyecto está diseñado como una plataforma interactiva o sistema de desafíos (duelos) que permite a los usuarios competir, poner a prueba conocimientos o simular escenarios de enfrentamiento estratégico/académico.
 
 ---
 
-## Deploy en Clever Cloud
+## 🚀 Características Principales
 
-1. Subir todo el proyecto como app **Python**
-2. Linkear el addon **MySQL**
-3. Cambiar en `config.py` para leer las variables de entorno de Clever Cloud:
-```python
-SQLALCHEMY_DATABASE_URI = os.environ.get('MYSQL_ADDON_URI')
-```
+*   **Sistema de Duelos:** Mecánica de enfrentamiento directo o emparejamiento competitivo.
+*   **Interfaz Adaptativa:** Diseño limpio y enfocado en la experiencia del usuario (UX) universitaria.
+*   **Gestión de Puntuaciones / Rankings:** Tabla de clasificación en tiempo real para hacer un seguimiento del rendimiento de los participantes.
+*   **Autenticación y Perfiles:** Registro y control de usuarios (estudiantes/profesores) con historial de partidas y estadísticas.
+
+---
+
+## 🛠️ Tecnologías Utilizadas
+
+*   **Frontend:** [Ej: HTML5, CSS3, JavaScript / React / Vue]
+*   **Backend:** [Ej: Node.js / Python / PHP]
+*   **Base de Datos:** [Ej: MySQL / PostgreSQL / MongoDB]
+*   **Herramientas y Entorno:** Git, GitHub.
+
+---
+
+## 📦 Instalación y Configuración
+
+Sigue estos pasos para clonar y ejecutar el proyecto de forma local:
+
+### 1. Clonar el repositorio
+```bash
+git clone [https://github.com/GabyCostilla/FCEFYN_Duel.git](https://github.com/GabyCostilla/FCEFYN_Duel.git)
+cd FCEFYN_Duel
