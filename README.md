@@ -6,7 +6,7 @@
 [![Flask](https://img.shields.io/badge/flask-3.0-lightgrey.svg)]()
 [![MySQL](https://img.shields.io/badge/mysql-8.0-orange.svg)]()
 
-**FCEFYN Duel** es una aplicación web de competencia de estudio en tiempo real, desarrollada para estudiantes de la **Facultad de Ciencias Exactas, Físicas y Naturales (FCEFYN)**. Dos usuarios se enfrentan midiendo sus horas de estudio diarias y semanales, con cronómetros sincronizados, estadísticas, logros y apuestas.
+**FCEFYN Duel** es una aplicación web de competencia de estudio en tiempo real, desarrollada por estudiantes de **Facultad de Ciencias Exactas, Físicas y Naturales (FCEFYN)**. Dos usuarios se enfrentan midiendo sus horas de estudio diarias y semanales, con cronómetros sincronizados, estadísticas, logros y apuestas.
 
 ---
 
