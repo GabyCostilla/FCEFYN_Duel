@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FCEFYN Duel</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root {
+  --bg:#0f0f13;--surface:#18181f;--surface2:#22222e;--border:rgba(255,255,255,0.08);
+  --text:#f0eff8;--muted:#7c7a8e;--purple:#1D4036;--pdim:rgba(139,124,248,0.15);
+  --teal:#D38129;--tdim:rgba(45,212,191,0.15);--green:#4ade80;--red:#f87171;
+  --orange:#fb923c;--radius:14px;--rsm:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;}
+/* login */
+#login-screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2rem;padding:2rem;}
+.logo{font-size:2.2rem;font-weight:700;letter-spacing:-1px;}
+.logo .p{color:var(--purple);}.logo .t{color:var(--teal);}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:2rem;width:100%;max-width:380px;display:flex;flex-direction:column;gap:1rem;}
+.card h2{font-size:1.1rem;font-weight:500;color:var(--muted);}
+input[type=text],input[type=number],select,textarea{width:100%;padding:.7rem 1rem;border-radius:var(--rsm);background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:.95rem;outline:none;transition:border-color .2s;font-family:inherit;}
+input:focus,select:focus,textarea:focus{border-color:var(--purple);}
+.btn{padding:.72rem 1.4rem;border-radius:var(--rsm);border:none;font-size:.95rem;font-weight:600;cursor:pointer;transition:opacity .15s,transform .1s;}
+.btn:active{transform:scale(0.97);}.btn:hover{opacity:.88;}
+.btn-primary{background:var(--purple);color:#fff;}
+.btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border);}
+.btn-danger{background:transparent;color:var(--red);border:1px solid var(--red);}
+.btn-teal{background:var(--teal);color:#0f0f13;}
+.btn-sm{padding:.45rem 1rem;font-size:.82rem;}
+.err{color:var(--red);font-size:.85rem;min-height:1.2em;}
+/* layout */
+#app{display:none;max-width:980px;margin:0 auto;padding:1.5rem 1rem 5rem;}
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:2rem;flex-wrap:wrap;gap:.5rem;}
+.topbar .logo{font-size:1.4rem;}
+.chip{display:flex;align-items:center;gap:.5rem;background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:.35rem .9rem;font-size:.85rem;}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--green);}
+/* tabs */
+.tabs{display:flex;gap:.5rem;margin-bottom:1.5rem;border-bottom:1px solid var(--border);padding-bottom:0;}
+.tab{padding:.6rem 1.1rem;border-radius:var(--rsm) var(--rsm) 0 0;font-size:.88rem;font-weight:600;cursor:pointer;color:var(--muted);border:1px solid transparent;border-bottom:none;transition:all .2s;background:transparent;}
+.tab.active{color:var(--text);background:var(--surface);border-color:var(--border);}
+.tab-panel{display:none;}.tab-panel.active{display:block;}
+/* section label */
+.slabel{font-size:.72rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:.75rem;}
+/* timers */
+.timers{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem;}
+@media(max-width:540px){.timers{grid-template-columns:1fr;}}
+.tc{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;position:relative;overflow:hidden;transition:border-color .3s;}
+.tc.me{border-color:var(--purple);}.tc.rival{border-color:var(--teal);}
+.tcbg{position:absolute;inset:0;opacity:0;transition:opacity .4s;pointer-events:none;}
+.tc.me .tcbg{background:var(--pdim);}.tc.rival .tcbg{background:var(--tdim);}
+.tc.running .tcbg{opacity:1;}
+.tc-lbl{font-size:.72rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:.25rem;position:relative;}
+.tc-name{font-size:1.1rem;font-weight:600;margin-bottom:.5rem;position:relative;}
+.tc-time{font-size:2.8rem;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-2px;position:relative;}
+.tc.me .tc-time{color:var(--purple);}.tc.rival .tc-time{color:var(--teal);}
+.tc-today{font-size:.8rem;color:var(--muted);margin-top:.3rem;position:relative;}
+.tc-streak{font-size:.85rem;margin-top:.25rem;position:relative;}
+.tc-btn{margin-top:1.1rem;width:100%;position:relative;}
+.badge-run{position:absolute;top:1rem;right:1rem;background:var(--green);color:#0f0f13;font-size:.68rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:3px 8px;border-radius:999px;}
+/* progress bars */
+.progress-wrap{margin-top:.6rem;position:relative;}
+.progress-label{display:flex;justify-content:space-between;font-size:.75rem;color:var(--muted);margin-bottom:.3rem;}
+.progress-bar{height:6px;background:var(--surface2);border-radius:999px;overflow:hidden;}
+.progress-fill{height:100%;border-radius:999px;transition:width .5s;}
+.tc.me .progress-fill{background:var(--purple);}
+.tc.rival .progress-fill{background:var(--teal);}
+/* stats grid */
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;margin-bottom:1.5rem;}
+@media(max-width:480px){.stats-grid{grid-template-columns:repeat(2,1fr);}}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--rsm);padding:1rem;text-align:center;}
+.stat .val{font-size:1.5rem;font-weight:700;}.stat .lbl{font-size:.72rem;color:var(--muted);margin-top:2px;}
+.stat.p .val{color:var(--purple);}.stat.t .val{color:var(--teal);}
+/* chart */
+.chart-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;margin-bottom:1.5rem;}
+.legend{display:flex;gap:1.5rem;margin-bottom:1rem;font-size:.8rem;color:var(--muted);}
+.legend span{display:flex;align-items:center;gap:6px;}
+.ld{width:10px;height:10px;border-radius:2px;}
+/* badges */
+.badges-grid{display:flex;flex-wrap:wrap;gap:.6rem;margin-bottom:1.5rem;}
+.bdg{background:var(--surface);border:1px solid var(--border);border-radius:var(--rsm);padding:.5rem .9rem;font-size:.82rem;display:flex;align-items:center;gap:.4rem;}
+.bdg.locked{opacity:.35;filter:grayscale(1);}
+/* sessions table */
+.tbl-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:1.5rem;}
+table{width:100%;border-collapse:collapse;font-size:.86rem;}
+th{background:var(--surface2);padding:.65rem 1rem;text-align:left;font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;}
+td{padding:.65rem 1rem;border-top:1px solid var(--border);}
+/* bets */
+.bet-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.2rem;margin-bottom:.75rem;}
+.bet-desc{font-size:.95rem;margin-bottom:.5rem;}
+.bet-meta{font-size:.75rem;color:var(--muted);}
+.bet-actions{margin-top:.75rem;display:flex;gap:.5rem;flex-wrap:wrap;}
+.pill{display:inline-block;padding:2px 10px;border-radius:999px;font-size:.75rem;font-weight:600;}
+.pill-p{background:var(--pdim);color:var(--purple);}.pill-t{background:var(--tdim);color:var(--teal);}
+.pill-g{background:rgba(74,222,128,.15);color:var(--green);}
+/* modal overlay */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:100;padding:1rem;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.8rem;width:100%;max-width:380px;display:flex;flex-direction:column;gap:1rem;}
+.modal h3{font-size:1.05rem;font-weight:600;}
+.modal-footer{display:flex;gap:.5rem;justify-content:flex-end;}
+/* winner */
+.winner{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.5rem;margin-bottom:1.5rem;text-align:center;font-size:1rem;font-weight:600;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="logo"><span class="p">FCEFYN</span><span class="t">Duel</span></div>
+  <div class="card">
+    <h2>Ingresá con tu usuario</h2>
+    <input type="text" id="uname" placeholder="Tu nombre de usuario" autocomplete="off"/>
+    <div style="display:flex;gap:.5rem">
+      <button class="btn btn-primary" style="flex:1" onclick="doLogin()">Entrar</button>
+      <button class="btn btn-secondary" onclick="doRegister()">Registrarme</button>
+    </div>
+    <p class="err" id="login-err"></p>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="topbar">
+    <div class="logo"><span class="p">FCEFYN</span><span class="t">Duel</span></div>
+    <div style="display:flex;gap:.5rem;align-items:center">
+      <button class="btn btn-secondary btn-sm" onclick="openGoalModal()">⚙ Metas</button>
+      <div class="chip"><span class="dot"></span><span id="topbar-name"></span></div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('home')">🏠 Inicio</div>
+    <div class="tab" onclick="switchTab('history')">📋 Historial</div>
+    <div class="tab" onclick="switchTab('badges')">🏅 Logros</div>
+    <div class="tab" onclick="switchTab('bets')">🎲 Apuestas</div>
+  </div>
+
+  <!-- TAB: HOME -->
+  <div class="tab-panel active" id="tab-home">
+    <div class="winner" id="winner" style="display:none"></div>
+    <div class="timers">
+      <div class="tc me" id="card-me">
+        <div class="tcbg"></div>
+        <div class="tc-lbl">Vos</div>
+        <div class="tc-name" id="me-name">–</div>
+        <div class="tc-time" id="me-time">00:00:00</div>
+        <div class="tc-today" id="me-today">Hoy: 0h 0m</div>
+        <div class="tc-streak" id="me-streak"></div>
+        <div class="progress-wrap" id="me-progress-wrap">
+          <div class="progress-label"><span>Meta diaria</span><span id="me-prog-lbl">0%</span></div>
+          <div class="progress-bar"><div class="progress-fill" id="me-prog-fill" style="width:0%"></div></div>
+        </div>
+        <button class="btn btn-primary tc-btn" id="me-btn" onclick="toggleTimer()">▶ Iniciar sesión</button>
+      </div>
+      <div class="tc rival" id="card-rival">
+        <div class="tcbg"></div>
+        <div class="tc-lbl">Rival</div>
+        <div class="tc-name" id="rival-name">Esperando rival…</div>
+        <div class="tc-time" id="rival-time">00:00:00</div>
+        <div class="tc-today" id="rival-today">Hoy: 0h 0m</div>
+        <div class="tc-streak" id="rival-streak"></div>
+        <div class="progress-wrap" id="rival-progress-wrap">
+          <div class="progress-label"><span>Meta diaria</span><span id="rival-prog-lbl">0%</span></div>
+          <div class="progress-bar"><div class="progress-fill" id="rival-prog-fill" style="width:0%"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slabel">Esta semana</div>
+    <div class="stats-grid" id="week-stats"></div>
+
+    <div class="chart-box">
+      <div class="slabel">Últimos 7 días (horas)</div>
+      <div class="legend">
+        <span><span class="ld" style="background:var(--purple)"></span><span id="leg-me">Vos</span></span>
+        <span><span class="ld" style="background:var(--teal)"></span><span id="leg-rival">Rival</span></span>
+      </div>
+      <div style="position:relative;height:200px"><canvas id="chart"></canvas></div>
+    </div>
+
+    <div class="slabel">Total histórico</div>
+    <div class="stats-grid" id="total-stats"></div>
+  </div>
+
+  <!-- TAB: HISTORY -->
+  <div class="tab-panel" id="tab-history">
+    <div class="slabel">Tus últimas sesiones</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Fecha</th><th>Duración</th><th>Materia</th></tr></thead>
+        <tbody id="sessions-tbody"><tr><td colspan="3" style="color:var(--muted);text-align:center;padding:2rem">Cargando…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB: BADGES -->
+  <div class="tab-panel" id="tab-badges">
+    <div class="slabel" id="badges-me-lbl">Tus logros</div>
+    <div class="badges-grid" id="badges-me"></div>
+    <div class="slabel" id="badges-rival-lbl">Logros del rival</div>
+    <div class="badges-grid" id="badges-rival"></div>
+  </div>
+
+  <!-- TAB: BETS -->
+  <div class="tab-panel" id="tab-bets">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+      <div class="slabel" style="margin:0">Apuestas de la semana</div>
+      <button class="btn btn-primary btn-sm" onclick="openBetModal()">+ Nueva apuesta</button>
+    </div>
+    <div id="bets-list"></div>
+  </div>
+</div>
+
+<!-- MODAL: stop timer (subject) -->
+<div class="overlay" id="modal-stop" style="display:none">
+  <div class="modal">
+    <h3>¿Qué estudiaste?</h3>
+    <input type="text" id="subject-input" placeholder="Ej: Matemática, Inglés… (opcional)"/>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeStopModal()">Cancelar</button>
+      <button class="btn btn-danger" onclick="confirmStop()">Terminar sesión</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: goal -->
+<div class="overlay" id="modal-goal" style="display:none">
+  <div class="modal">
+    <h3>⚙ Mis metas</h3>
+    <label style="font-size:.85rem;color:var(--muted)">Horas diarias</label>
+    <input type="number" id="goal-daily" min="0.5" max="24" step="0.5" value="2"/>
+    <label style="font-size:.85rem;color:var(--muted)">Horas semanales</label>
+    <input type="number" id="goal-weekly" min="1" max="100" step="1" value="10"/>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeGoalModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveGoal()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: new bet -->
+<div class="overlay" id="modal-bet" style="display:none">
+  <div class="modal">
+    <h3>🎲 Nueva apuesta</h3>
+    <p style="font-size:.85rem;color:var(--muted)">Define qué gana el que estudia más esta semana</p>
+    <textarea id="bet-input" rows="3" placeholder="Ej: El que pierde paga el café del viernes"></textarea>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeBetModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveBet()">Apostar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const ALL_BADGES = {
+  first_session: {label:'Primera sesión',icon:'🎯'},
+  streak_3:      {label:'3 días seguidos',icon:'🔥'},
+  streak_7:      {label:'7 días seguidos',icon:'⚡'},
+  streak_30:     {label:'30 días seguidos',icon:'🏅'},
+  week_10h:      {label:'10 hs en una semana',icon:'📚'},
+  week_20h:      {label:'20 hs en una semana',icon:'🚀'},
+  total_50h:     {label:'50 hs totales',icon:'💎'},
+  total_100h:    {label:'100 hs totales',icon:'👑'},
+  sessions_10:   {label:'10 sesiones',icon:'✅'},
+  sessions_50:   {label:'50 sesiones',icon:'🌟'},
+};
+
+let me = null, running = false, elapsed = 0, tick = null, chart = null;
+let lastStats = [];
+
+const fmt    = s => [Math.floor(s/3600),Math.floor(s%3600/60),s%60].map(v=>String(v).padStart(2,'0')).join(':');
+const fmtHM  = s => `${Math.floor(s/3600)}h ${Math.floor(s%3600/60)}m`;
+const pct    = (v, max) => Math.min(100, Math.round(v / (max*3600) * 100));
+const last7  = () => { const d=[]; for(let i=6;i>=0;i--){const x=new Date();x.setDate(x.getDate()-i);d.push(x.toISOString().slice(0,10));} return d; };
+const dayLbl = iso => new Date(iso+'T00:00:00').toLocaleDateString('es-AR',{weekday:'short',day:'numeric'});
+
+async function api(path, opts={}) {
+  const r = await fetch(path, {headers:{'Content-Type':'application/json'}, ...opts});
+  return r.json();
+}
+
+// ── Auth ──────────────────────────────────────────────
+async function doLogin() {
+  const u = document.getElementById('uname').value.trim(); if(!u) return;
+  const d = await api(`/users/${encodeURIComponent(u)}/login`);
+  if(d.error) { document.getElementById('login-err').textContent = d.error + ' — ¿querés registrarte?'; return; }
+  me = d; enterApp();
+}
+async function doRegister() {
+  const u = document.getElementById('uname').value.trim(); if(!u) return;
+  const d = await api('/users', {method:'POST', body:JSON.stringify({username:u})});
+  if(d.error) { document.getElementById('login-err').textContent = d.error; return; }
+  me = d; enterApp();
+}
+document.getElementById('uname').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+
+function enterApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('topbar-name').textContent = me.username;
+  document.getElementById('me-name').textContent = me.username;
+  document.getElementById('leg-me').textContent = me.username;
+  refresh();
+  setInterval(refresh, 5000);
+}
+
+// ── Tabs ──────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['home','history','badges','bets'][i]===name));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  if(name==='history') loadHistory();
+  if(name==='bets')    loadBets();
+  if(name==='badges' && lastStats.length) renderBadges(lastStats);
+}
+
+// ── Timer ─────────────────────────────────────────────
+function toggleTimer() {
+  if(!running) startTimer(); else openStopModal();
+}
+async function startTimer() {
+  const r = await api('/timer/start', {method:'POST', body:JSON.stringify({user_id:me.id})});
+  if(r.error) { alert(r.error); return; }
+  running = true; elapsed = 0; setBtn(true);
+  tick = setInterval(() => { elapsed++; document.getElementById('me-time').textContent = fmt(elapsed); }, 1000);
+}
+
+function openStopModal()  { document.getElementById('modal-stop').style.display='flex'; document.getElementById('subject-input').focus(); }
+function closeStopModal() { document.getElementById('modal-stop').style.display='none'; }
+async function confirmStop() {
+  const subj = document.getElementById('subject-input').value.trim();
+  document.getElementById('subject-input').value = '';
+  closeStopModal();
+  clearInterval(tick);
+  await api('/timer/stop', {method:'POST', body:JSON.stringify({user_id:me.id, subject:subj})});
+  running = false; elapsed = 0; setBtn(false);
+  document.getElementById('me-time').textContent = '00:00:00';
+  refresh();
+}
+
+function setBtn(on) {
+  const card = document.getElementById('card-me');
+  const btn  = document.getElementById('me-btn');
+  card.classList.toggle('running', on);
+  let b = card.querySelector('.badge-run');
+  if(on) {
+    if(!b){ b=document.createElement('div'); b.className='badge-run'; b.textContent='En curso'; card.appendChild(b); }
+    btn.textContent='⏹ Terminar sesión'; btn.className='btn btn-danger tc-btn';
+  } else {
+    if(b) b.remove();
+    btn.textContent='▶ Iniciar sesión'; btn.className='btn btn-primary tc-btn';
+  }
+}
+
+// ── Goals modal ───────────────────────────────────────
+function openGoalModal() {
+  const my = lastStats.find(s=>s.id===me.id);
+  if(my?.goal) {
+    document.getElementById('goal-daily').value  = my.goal.daily_hours;
+    document.getElementById('goal-weekly').value = my.goal.weekly_hours;
+  }
+  document.getElementById('modal-goal').style.display='flex';
+}
+function closeGoalModal() { document.getElementById('modal-goal').style.display='none'; }
+async function saveGoal() {
+  await api('/goals', {method:'POST', body:JSON.stringify({
+    user_id: me.id,
+    daily_hours:  parseFloat(document.getElementById('goal-daily').value),
+    weekly_hours: parseFloat(document.getElementById('goal-weekly').value),
+  })});
+  closeGoalModal(); refresh();
+}
+
+// ── Bets ──────────────────────────────────────────────
+function openBetModal()  { document.getElementById('modal-bet').style.display='flex'; }
+function closeBetModal() { document.getElementById('modal-bet').style.display='none'; }
+async function saveBet() {
+  const desc = document.getElementById('bet-input').value.trim();
+  if(!desc) return;
+  document.getElementById('bet-input').value='';
+  await api('/bets', {method:'POST', body:JSON.stringify({description:desc, user_id:me.id})});
+  closeBetModal(); loadBets();
+}
+async function loadBets() {
+  const bets = await api('/bets');
+  const rival = lastStats.find(s=>s.id!==me?.id);
+  const el = document.getElementById('bets-list');
+  if(!bets.length){ el.innerHTML='<p style="color:var(--muted);font-size:.9rem">No hay apuestas esta semana. ¡Creá una!</p>'; return; }
+  el.innerHTML = bets.map(b => {
+    const isMe = b.created_by === me?.id;
+    const winnerName = b.winner_id === me?.id ? me.username : (rival?.username ?? '?');
+    return `<div class="bet-card">
+      <div class="bet-desc">${b.description}</div>
+      <div class="bet-meta">Semana del ${b.week_start} · Creada por ${isMe?'vos':rival?.username??'rival'}</div>
+      ${b.resolved
+        ? `<div style="margin-top:.5rem"><span class="pill pill-g">🏆 Ganó ${winnerName}</span></div>`
+        : `<div class="bet-actions">
+            <button class="btn btn-secondary btn-sm" onclick="resolveBet(${b.id},${me.id})">Gané yo</button>
+            ${rival?`<button class="btn btn-secondary btn-sm" onclick="resolveBet(${b.id},${rival.id})">Ganó ${rival.username}</button>`:''}
+           </div>`
+      }
+    </div>`;
+  }).join('');
+}
+async function resolveBet(betId, winnerId) {
+  if(!confirm('¿Confirmar resultado?')) return;
+  await api(`/bets/${betId}/resolve`, {method:'POST', body:JSON.stringify({winner_id:winnerId})});
+  loadBets();
+}
+
+// ── History ───────────────────────────────────────────
+async function loadHistory() {
+  const sessions = await api(`/sessions/${me.id}`);
+  const tbody = document.getElementById('sessions-tbody');
+  if(!sessions.length){ tbody.innerHTML='<tr><td colspan="3" style="color:var(--muted);text-align:center;padding:2rem">Sin sesiones todavía</td></tr>'; return; }
+  tbody.innerHTML = sessions.map(s => {
+    const h = Math.floor(s.duration_seconds/3600);
+    const m = Math.floor(s.duration_seconds%3600/60);
+    const dur = h>0 ? `${h}h ${m}m` : `${m}m`;
+    return `<tr><td>${s.started_at}</td><td>${dur}</td><td>${s.subject}</td></tr>`;
+  }).join('');
+}
+
+// ── Badges ────────────────────────────────────────────
+function renderBadges(stats) {
+  const myD  = stats.find(s=>s.id===me.id);
+  const frD  = stats.find(s=>s.id!==me.id);
+  document.getElementById('badges-me-lbl').textContent    = `Tus logros (${myD?.badges?.length??0}/${Object.keys(ALL_BADGES).length})`;
+  document.getElementById('badges-rival-lbl').textContent = `Logros de ${frD?.username??'rival'} (${frD?.badges?.length??0}/${Object.keys(ALL_BADGES).length})`;
+  renderBadgeSet('badges-me',   myD?.badges??[]);
+  renderBadgeSet('badges-rival', frD?.badges??[]);
+}
+function renderBadgeSet(elId, earned) {
+  const keys = earned.map(b=>b.key);
+  document.getElementById(elId).innerHTML = Object.entries(ALL_BADGES).map(([k,b]) =>
+    `<div class="bdg ${keys.includes(k)?'':'locked'}">${b.icon} ${b.label}</div>`
+  ).join('');
+}
+
+// ── Main refresh ──────────────────────────────────────
+async function refresh() {
+  const stats = await api('/stats');
+  lastStats = stats;
+  const myD = stats.find(s=>s.id===me.id);
+  const frD = stats.find(s=>s.id!==me.id);
+
+  // rival card
+  if(frD) {
+    document.getElementById('rival-name').textContent  = frD.username;
+    document.getElementById('leg-rival').textContent   = frD.username;
+    const fc = document.getElementById('card-rival');
+    fc.classList.toggle('running', frD.active_elapsed!==null);
+    let fb = fc.querySelector('.badge-run');
+    if(frD.active_elapsed!==null) {
+      document.getElementById('rival-time').textContent = fmt(frD.active_elapsed);
+      if(!fb){ fb=document.createElement('div');fb.className='badge-run';fb.textContent='Estudiando';fc.appendChild(fb); }
+    } else {
+      document.getElementById('rival-time').textContent = '00:00:00';
+      if(fb) fb.remove();
+    }
+    document.getElementById('rival-today').textContent = `Hoy: ${fmtHM(frD.today_seconds+(frD.active_elapsed??0))}`;
+    document.getElementById('rival-streak').textContent = frD.streak>0 ? `🔥 Racha: ${frD.streak} día${frD.streak>1?'s':''}` : '';
+    const rPct = pct(frD.today_seconds+(frD.active_elapsed??0), frD.goal.daily_hours);
+    document.getElementById('rival-prog-fill').style.width = rPct+'%';
+    document.getElementById('rival-prog-lbl').textContent  = rPct+'%';
+  }
+
+  // reconnect my timer if needed
+  if(myD?.active_elapsed!==null && !running) {
+    running=true; elapsed=myD.active_elapsed; setBtn(true);
+    tick=setInterval(()=>{ elapsed++; document.getElementById('me-time').textContent=fmt(elapsed); },1000);
+  }
+  if(myD) {
+    const myToday = myD.today_seconds+(running?elapsed:0);
+    document.getElementById('me-today').textContent   = `Hoy: ${fmtHM(myToday)}`;
+    document.getElementById('me-streak').textContent  = myD.streak>0 ? `🔥 Racha: ${myD.streak} día${myD.streak>1?'s':''}` : '';
+    const mPct = pct(myToday, myD.goal.daily_hours);
+    document.getElementById('me-prog-fill').style.width = mPct+'%';
+    document.getElementById('me-prog-lbl').textContent  = mPct+'%';
+  }
+
+  // week stats
+  const wc = document.getElementById('week-stats'); wc.innerHTML='';
+  const myW = (myD?.week_seconds??0)+(running?elapsed:0);
+  const frW = (frD?.week_seconds??0)+(frD?.active_elapsed??0);
+  addStat(wc, fmtHM(myW), `${me.username} semana`, 'p');
+  if(frD) addStat(wc, fmtHM(frW), `${frD.username} semana`, 't');
+  if(frD) {
+    const diff = Math.abs(myW-frW);
+    addStat(wc, fmtHM(diff), myW>=frW?'🏆 Vas ganando':'😤 Vas perdiendo', '');
+  }
+
+  // total stats
+  const sc = document.getElementById('total-stats'); sc.innerHTML='';
+  if(myD) addStat(sc, fmtHM(myD.total_seconds), `${myD.username} total`, 'p');
+  if(frD) addStat(sc, fmtHM(frD.total_seconds),  `${frD.username} total`, 't');
+  if(myD&&frD) addStat(sc, myD.total_sessions+frD.total_sessions, 'Sesiones totales', '');
+
+  // winner banner
+  if(myD&&frD&&myD.total_seconds!==frD.total_seconds) {
+    const w=myD.total_seconds>frD.total_seconds?myD:frD;
+    const banner=document.getElementById('winner');
+    banner.style.display=''; banner.style.color=w.id===me.id?'var(--purple)':'var(--teal)';
+    banner.textContent=`🏆 ${w.username} lleva la delantera — ${fmtHM(Math.abs(myD.total_seconds-frD.total_seconds))} más`;
+  } else { document.getElementById('winner').style.display='none'; }
+
+  // chart
+  const days=last7(), labels=days.map(dayLbl);
+  const build=u=>{ if(!u) return days.map(()=>0); const m={}; (u.history||[]).forEach(h=>m[h.day]=h.seconds); return days.map(d=>parseFloat(((m[d]||0)/3600).toFixed(2))); };
+  if(!chart) {
+    chart=new Chart(document.getElementById('chart').getContext('2d'),{
+      type:'bar',
+      data:{labels,datasets:[
+        {label:me.username,data:build(myD),backgroundColor:'rgba(139,124,248,0.7)',borderRadius:4},
+        {label:frD?.username??'Rival',data:build(frD),backgroundColor:'rgba(45,212,191,0.7)',borderRadius:4}
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false}},
+        scales:{
+          x:{ticks:{color:'#7c7a8e',font:{size:11}},grid:{color:'rgba(255,255,255,0.05)'}},
+          y:{ticks:{color:'#7c7a8e',font:{size:11},callback:v=>v+'h'},grid:{color:'rgba(255,255,255,0.05)'},beginAtZero:true}
+        }
+      }
+    });
+  } else {
+    chart.data.labels=labels;
+    chart.data.datasets[0].data=build(myD);
+    chart.data.datasets[1].data=build(frD);
+    chart.update('none');
+  }
+
+  // badges (if tab open)
+  if(document.getElementById('tab-badges').classList.contains('active')) renderBadges(stats);
+}
+
+function addStat(c,val,lbl,cls) {
+  const d=document.createElement('div'); d.className=`stat ${cls}`;
+  d.innerHTML=`<div class="val">${val}</div><div class="lbl">${lbl}</div>`;
+  c.appendChild(d);
+}
+</script>
+</body>
+</html>
