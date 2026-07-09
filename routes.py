@@ -31,20 +31,18 @@ def check_and_award_badges(user):
             db.session.add(UserBadge(user_id=user.id, badge_key=key))
             new_badges.append(key)
 
-    if len(completed) >= 1:   award('first_session')
-    if len(completed) >= 10:  award('sessions_10')
-    if len(completed) >= 50:  award('sessions_50')
+    if len(completed) >= 1:    award('first_session')
+    if len(completed) >= 10:   award('sessions_10')
+    if len(completed) >= 50:   award('sessions_50')
     if total_secs >= 50*3600:  award('total_50h')
     if total_secs >= 100*3600: award('total_100h')
 
-    # semana actual
     week_start = date.today() - timedelta(days=date.today().weekday())
     week_secs = sum(s.duration_seconds for s in completed
                     if s.started_at.date() >= week_start)
     if week_secs >= 10*3600: award('week_10h')
     if week_secs >= 20*3600: award('week_20h')
 
-    # streak
     study_days = sorted({s.started_at.date() for s in completed}, reverse=True)
     streak = 0
     if study_days:
@@ -96,10 +94,38 @@ def start_timer():
     if ActiveTimer.query.get(user_id):
         return jsonify({'error': 'Cronómetro ya corriendo'}), 400
     now = datetime.utcnow()
-    db.session.add(ActiveTimer(user_id=user_id, started_at=now))
+    db.session.add(ActiveTimer(user_id=user_id, started_at=now, accumulated_seconds=0))
     db.session.add(StudySession(user_id=user_id, started_at=now))
     db.session.commit()
     return jsonify({'started_at': now.isoformat()})
+
+@main.route('/timer/pause', methods=['POST'])
+def pause_timer():
+    data = request.get_json()
+    user_id = data.get('user_id')
+    timer = ActiveTimer.query.get(user_id)
+    if not timer:
+        return jsonify({'error': 'No hay cronómetro activo'}), 400
+    if timer.paused_at:
+        return jsonify({'error': 'Ya está pausado'}), 400
+    now = datetime.utcnow()
+    timer.accumulated_seconds += int((now - timer.started_at).total_seconds())
+    timer.paused_at = now
+    db.session.commit()
+    return jsonify({'accumulated_seconds': timer.accumulated_seconds})
+
+@main.route('/timer/resume', methods=['POST'])
+def resume_timer():
+    data = request.get_json()
+    user_id = data.get('user_id')
+    timer = ActiveTimer.query.get(user_id)
+    if not timer or not timer.paused_at:
+        return jsonify({'error': 'No hay cronómetro pausado'}), 400
+    now = datetime.utcnow()
+    timer.started_at = now
+    timer.paused_at = None
+    db.session.commit()
+    return jsonify({'resumed_at': now.isoformat()})
 
 @main.route('/timer/stop', methods=['POST'])
 def stop_timer():
@@ -110,7 +136,10 @@ def stop_timer():
     if not timer:
         return jsonify({'error': 'No hay cronómetro activo'}), 400
     now = datetime.utcnow()
-    duration = int((now - timer.started_at).total_seconds())
+    if timer.paused_at:
+        duration = timer.accumulated_seconds
+    else:
+        duration = timer.accumulated_seconds + int((now - timer.started_at).total_seconds())
     session = (StudySession.query
                .filter_by(user_id=user_id, ended_at=None)
                .order_by(StudySession.id.desc()).first())
@@ -195,13 +224,18 @@ def get_stats():
 
     for u in users:
         completed = [s for s in u.sessions if s.ended_at]
-        total = sum(s.duration_seconds for s in completed)
+        total      = sum(s.duration_seconds for s in completed)
         today_secs = sum(s.duration_seconds for s in completed if s.started_at.date() == today)
         week_secs  = sum(s.duration_seconds for s in completed if s.started_at.date() >= week_start)
 
         active_elapsed = None
+        active_paused  = False
         if u.timer:
-            active_elapsed = int((datetime.utcnow() - u.timer.started_at).total_seconds())
+            if u.timer.paused_at:
+                active_elapsed = u.timer.accumulated_seconds
+                active_paused  = True
+            else:
+                active_elapsed = u.timer.accumulated_seconds + int((datetime.utcnow() - u.timer.started_at).total_seconds())
 
         # streak
         study_days = sorted({s.started_at.date() for s in completed}, reverse=True)
@@ -234,6 +268,7 @@ def get_stats():
             'today_seconds': today_secs,
             'week_seconds': week_secs,
             'active_elapsed': active_elapsed,
+            'active_paused': active_paused,
             'streak': streak,
             'history': history,
             'goal': goal,

@@ -22,8 +22,10 @@ class StudySession(db.Model):
 
 class ActiveTimer(db.Model):
     __tablename__ = 'active_timers'
-    user_id    = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
-    started_at = db.Column(db.DateTime, nullable=False)
+    user_id             = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
+    started_at          = db.Column(db.DateTime, nullable=False)
+    paused_at           = db.Column(db.DateTime, nullable=True) 
+    accumulated_seconds = db.Column(db.Integer, default=0)
 
 class Goal(db.Model):
     __tablename__ = 'goals'
