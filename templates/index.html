@@ -4,7 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FCEFYN Duel</title>
+<!-- Librería para Gráficos -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<!-- Librería para Confeti (recuperada del código 1) -->
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
 <style>
 :root {
   --bg:#0f0f13;--surface:#18181f;--surface2:#22222e;--border:rgba(255,255,255,0.08);
@@ -89,6 +92,24 @@ td{padding:.65rem 1rem;border-top:1px solid var(--border);}
 .modal h3{font-size:1.05rem;font-weight:600;}
 .modal-footer{display:flex;gap:.5rem;justify-content:flex-end;}
 .winner{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.5rem;margin-bottom:1.5rem;text-align:center;font-size:1rem;font-weight:600;}
+
+/* ── Estilos de Celebración (recuperados del código 1) ── */
+#celebration-overlay{
+  position:fixed;inset:0;z-index:200;display:none;
+  align-items:center;justify-content:center;
+  background:rgba(0,0,0,.55);
+}
+#celebration-overlay.show{display:flex;}
+.celebration-box{
+  background:var(--surface);border:2px solid var(--teal);
+  border-radius:var(--radius);padding:2.5rem 2rem;
+  text-align:center;max-width:340px;width:100%;
+  animation:popIn .4s cubic-bezier(.175,.885,.32,1.275);
+}
+@keyframes popIn{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
+.celebration-box .big-emoji{font-size:4rem;display:block;margin-bottom:.75rem;}
+.celebration-box h2{font-size:1.5rem;font-weight:700;color:var(--teal);margin-bottom:.5rem;}
+.celebration-box p{color:var(--muted);font-size:.9rem;margin-bottom:1.5rem;}
 </style>
 </head>
 <body>
@@ -244,6 +265,18 @@ td{padding:.65rem 1rem;border-top:1px solid var(--border);}
   </div>
 </div>
 
+<!-- CELEBRATION OVERLAY (recuperado del código 1) -->
+<div id="celebration-overlay">
+  <div class="celebration-box">
+    <span class="big-emoji">🏆</span>
+    <h2>¡Meta semanal cumplida!</h2>
+    <p>Lograste tu objetivo de la semana. ¡A descansar y volver con más!</p>
+    <button class="btn btn-primary" style="width:100%" onclick="closeCelebration()">¡Gracias!</button>
+  </div>
+</div>
+
+<audio id="celebration-audio" src="{{ url_for('static', filename='celebracion.mp3') }}" preload="auto"></audio>
+
 <script>
 const ALL_BADGES = {
   first_session: {label:'Primera sesión',icon:'🎯'},
@@ -260,6 +293,10 @@ const ALL_BADGES = {
 
 let me = null, running = false, paused = false, elapsed = 0, tick = null, chart = null;
 let lastStats = [];
+
+// ── Flags para animaciones (recuperadas del código 1) ──
+let dailyFired = false;
+let weeklyFired = false;
 
 const fmt    = s => [Math.floor(s/3600),Math.floor(s%3600/60),s%60].map(v=>String(v).padStart(2,'0')).join(':');
 const fmtHM  = s => `${Math.floor(s/3600)}h ${Math.floor(s%3600/60)}m`;
@@ -354,6 +391,7 @@ function setBtn(state) {
   const pauseBtn = document.getElementById('me-pause-btn');
   card.querySelectorAll('.badge-run,.badge-paused').forEach(b=>b.remove());
   card.classList.remove('running','paused');
+  
   if(state === 'running') {
     card.classList.add('running');
     const b=document.createElement('div');b.className='badge-run';b.textContent='En curso';card.appendChild(b);
@@ -386,7 +424,9 @@ async function saveGoal() {
     daily_hours:  parseFloat(document.getElementById('goal-daily').value),
     weekly_hours: parseFloat(document.getElementById('goal-weekly').value),
   })});
-  closeGoalModal(); refresh();
+  closeGoalModal(); 
+  dailyFired = false; weeklyFired = false; // Resetear flags para animaciones
+  refresh();
 }
 
 // ── Bets ──────────────────────────────────────────────
@@ -453,6 +493,29 @@ function renderBadgeSet(elId, earned) {
   ).join('');
 }
 
+// ── Animaciones y Celebraciones (recuperadas del código 1) ──
+function fireDaily() {
+  const colors = ['#ff4444','#ffbb00','#00cc88','#4488ff','#ff44cc','#ffffff'];
+  confetti({ particleCount: 120, spread: 360, startVelocity: 28, decay: 0.88, scalar: 0.85, origin: { x: 0.5, y: 0.5 }, colors, shapes: ['circle', 'square'], gravity: 1.2 });
+}
+function fireWeekly() {
+  const audio = document.getElementById('celebration-audio');
+  audio.currentTime = 0; audio.play().catch(err => console.error("Error de audio:", err));
+  document.getElementById('celebration-overlay').classList.add('show');
+
+  const colors = ['#D38129','#1D4036','#ffdd57','#ff6b6b','#74ebd5','#ffffff','#f9ca24'];
+  let angle = 0; const end = Date.now() + 4000;
+  const vortex = setInterval(() => {
+    if(Date.now() > end){ clearInterval(vortex); return; }
+    angle += 15;
+    confetti({ particleCount: 6, angle: angle, spread: 55, startVelocity: 45, decay: 0.92, scalar: 1, origin: { x: 0, y: 0.6 }, colors, shapes: ['circle','square'] });
+    confetti({ particleCount: 6, angle: 180 - angle, spread: 55, startVelocity: 45, decay: 0.92, scalar: 1, origin: { x: 1, y: 0.6 }, colors, shapes: ['circle','square'] });
+    confetti({ particleCount: 4, angle: 270 + (angle * 0.5), spread: 80, startVelocity: 30, decay: 0.94, scalar: 0.9, origin: { x: 0.5, y: 0 }, colors, shapes: ['circle'] });
+  }, 60);
+}
+function closeCelebration() { document.getElementById('celebration-overlay').classList.remove('show'); }
+
+
 // ── Refresh ───────────────────────────────────────────
 async function refresh() {
   const stats = await api('/stats');
@@ -496,13 +559,28 @@ async function refresh() {
       tick = setInterval(()=>{ elapsed++; document.getElementById('me-time').textContent=fmt(elapsed); },1000);
     }
   }
+  
   if(myD) {
     const myToday = myD.today_seconds+(running?elapsed:0);
+    const myWeek  = myD.week_seconds+(running?elapsed:0);
+    
+    const dailyPct = pct(myToday, myD.goal.daily_hours);
+    const weekPct  = pct(myWeek, myD.goal.weekly_hours);
+
     document.getElementById('me-today').textContent   = `Hoy: ${fmtHM(myToday)}`;
     document.getElementById('me-streak').textContent  = myD.streak>0 ? `🔥 Racha: ${myD.streak} día${myD.streak>1?'s':''}` : '';
-    const mPct = pct(myToday, myD.goal.daily_hours);
-    document.getElementById('me-prog-fill').style.width = mPct+'%';
-    document.getElementById('me-prog-lbl').textContent  = mPct+'%';
+    document.getElementById('me-prog-fill').style.width = dailyPct+'%';
+    document.getElementById('me-prog-lbl').textContent  = dailyPct+'%';
+
+    // ── Disparar animaciones si se alcanza la meta (Código 1) ──
+    if(weekPct >= 100 && !weeklyFired) {
+      weeklyFired = true;
+      dailyFired  = true; // la semanal incluye la diaria
+      fireWeekly();
+    } else if(dailyPct >= 100 && !dailyFired) {
+      dailyFired = true;
+      fireDaily();
+    }
   }
 
   // semana
